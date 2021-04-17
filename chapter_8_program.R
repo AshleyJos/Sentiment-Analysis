@@ -301,6 +301,10 @@ train.corpus <- tm_map(train.corpus,
 # compute list-based text measures for the training corpus
 # for each of the documents count the total words 
 # and the number of words that match the positive and negative dictionaries
+## This identifies the positive and negative words then runs them through pre established
+## training set, then standardizes them again
+## I've noticed that the standardization process is reccuring, you always need to make
+##sure that the data is able to be cross referenced in a set standard way
 total.words <- integer(length(names(train.corpus)))
 positive.words <- integer(length(names(train.corpus)))
 negative.words <- integer(length(names(train.corpus)))
@@ -455,6 +459,9 @@ test.data.frame$thumbsupdown <-
     labels = c("DOWN","UP"))
 
 # a set of 4 positive and 4 negative reviews... testing set of Tom's reviews
+## now that the test set has been established, and run to ensure accuracy a new data set
+## outside of the test set is brought in to run through the model
+## it is imported and run throught the standardization process
 directory.location <- 
   paste(getwd(),"/reviews/test/tom/",sep = "")  
 
@@ -502,6 +509,8 @@ tom.corpus <- tm_map(tom.corpus,
 # compute list-based text measures for tom corpus
 # for each of the documents count the total words 
 # and the number of words that match the positive and negative dictionaries
+## The set is then analyzed the same way the test set was, looking for the number
+## of positive, negative, and other words, then summarized by number and percentage
 total.words <- integer(length(names(tom.corpus)))
 positive.words <- integer(length(names(tom.corpus)))
 negative.words <- integer(length(names(tom.corpus)))
@@ -543,6 +552,7 @@ for(index.for.document in seq(along = tom.data.frame$document)) {
   second_split <- strsplit(first_split[[1]][2], split = "[.]")
   tom.data.frame$rating[index.for.document] <- as.numeric(second_split[[1]][1])
   } # end of for-loop for defining 
+## it is important to end the loop so it doesn't continue
 
 tom.data.frame$thumbsupdown <- ifelse((tom.data.frame$rating > 5), 2, 1)
 tom.data.frame$thumbsupdown <- 
@@ -567,6 +577,8 @@ train.data.frame$simple <-
      train.data.frame$POSITIVE - train.data.frame$NEGATIVE
 
 # check out simple difference method... is there a correlation with ratings?
+## This looks at the number or positive and negative words used, and the overall rating to
+## try and determine if there is a correlation between word usage and rating
 with(train.data.frame, print(cor(simple, rating)))  
 
 # we use the training data to define an optimal cutoff... 
@@ -575,12 +587,17 @@ try.tree <- rpart(thumbsupdown ~ simple, data = train.data.frame)
 print(try.tree)  # note that the first split value
 # an earlier analysis had this value as -0.7969266
 # create a user-defined function for the simple difference method
+## this allows us to return a value of thumbs up or thumbs down
+## based on the previous dictionary of positive and negative words by using a
+## predetermined cut off point for whether a review is postive or negative
 predict.simple <- function(x) {
   if (x >= -0.7969266) return("UP")
   if (x < -0.7969266) return("DOWN")
   }
 
 # evaluate predictive accuracy in the training data
+## evaluate the accuracy of a test set before running the full set
+## to make sure the model works as expected
 train.data.frame$pred.simple <- character(nrow(train.data.frame))
 for (index.for.review in seq(along = train.data.frame$pred.simple)) {
   train.data.frame$pred.simple[index.for.review] <- 
@@ -594,6 +611,8 @@ train.pred.simple.performance <-
   reference = train.data.frame$thumbsupdown, positive = "UP") 
   
 # report full set of statistics relating to predictive accuracy
+## This gives us the full set of statistical information to see if the 
+##predictive model is accurate
 print(train.pred.simple.performance)
 
 cat("\n\nTraining set percentage correctly predicted by",
@@ -629,6 +648,9 @@ cat("\n\nTest set percentage correctly predicted = ",
 # --------------------------------------
 # regression method for determining weights on POSITIVE AND NEGATIVE
 # fit a regression model to the training data
+## a negative word has a stronger weight to it than a positive word
+## indicating that there is a stronger likelyhood of a negative review based on
+## negative language, than a positive review based on postive language
 regression.model <- lm(rating ~ POSITIVE + NEGATIVE, data = train.data.frame)
 print(regression.model)  # provides 5.5386 + 0.2962(POSITIVE) -0.3089(NEGATIVE)
 
@@ -658,6 +680,7 @@ train.pred.regression.performance <-
   
 # report full set of statistics relating to predictive accuracy
 print(train.pred.regression.performance)  # result 67.3 percent
+## the predictive accuracy of the regression model is 67.3%
 
 cat("\n\nTraining set percentage correctly predicted by regression = ",
   sprintf("%1.1f",train.pred.regression.performance$overall[1]*100),
@@ -682,6 +705,8 @@ test.pred.regression.performance <-
   
 # report full set of statistics relating to predictive accuracy
 print(test.pred.regression.performance)  # result 67.3 percent
+## the predictive accuracy is the same in the test set as it is in 
+## the training set
 
 cat("\n\nTest set percentage correctly predicted = ",
   sprintf("%1.1f",test.pred.regression.performance$overall[1]*100),
@@ -753,6 +778,8 @@ tom.data.frame <- cbind(tom.data.frame,add.data.frame)
 
 # use phi coefficient... correlation with rating as index of item value
 # again we draw upon the earlier positive and negative lists 
+## This gives us a binary association between variables and looks at the correlation with rating
+## used in the training and test set respectively
 phi <- numeric(50)
 item <- c("amazing","beautiful","classic","enjoy",       
   "enjoyed","entertaining","excellent","fans","favorite","fine","fun","humor",       
@@ -887,6 +914,7 @@ text.classification.model <- {thumbsupdown ~ amazing + beautiful +
   slow + terrible + waste + worst + wrong}
 
 # full logistic regression model
+## this gives us the logistic regression model, a regression model with a binary fit
 logistic.regression.fit <- glm(text.classification.model, 
   family=binomial(link=logit), data = train.data.frame)
 print(summary(logistic.regression.fit))
@@ -933,6 +961,7 @@ test.pred.logistic.regression.performance <-
 
 # report full set of statistics relating to predictive accuracy
 print(test.pred.logistic.regression.performance)  # result 72.6 Percent
+## The training set has a higher predictive accuracy than the test set by approximatly 3 percentage points
 
 cat("\n\nTest set percentage correctly predicted by logistic regression = ",
   sprintf("%1.1f",test.pred.logistic.regression.performance$overall[1]*100),
@@ -942,6 +971,7 @@ cat("\n\nTest set percentage correctly predicted by logistic regression = ",
 # Support vector machines
 # --------------------------------------
 # determine tuning parameters prior to fitting model
+## This determines the ranges within our model for text classification
 train.tune <- tune(svm, text.classification.model, data = train.data.frame,
                    ranges = list(gamma = 2^(-8:1), cost = 2^(0:4)),
                    tunecontrol = tune.control(sampling = "fix"))
@@ -977,6 +1007,7 @@ test.pred.svm.performance <-
 
 # report full set of statistics relating to predictive accuracy
 print(test.pred.svm.performance)  # result 71.6 Percent
+## The training model had a higher accuracy than the test model
 
 cat("\n\nTest set percentage correctly predicted by SVM = ",
   sprintf("%1.1f",test.pred.svm.performance$overall[1]*100),
@@ -1023,6 +1054,8 @@ test.pred.rf.performance <-
 
 # report full set of statistics relating to predictive accuracy
 print(test.pred.rf.performance)  # result 74.0 Percent
+## The training set had a higher accuracy, although both for the training and
+## Test set the accuracy was higher than any of the other models
 
 cat("\n\nTest set percentage correctly predicted by random forests = ",
   sprintf("%1.1f",test.pred.rf.performance$overall[1]*100),
@@ -1072,6 +1105,7 @@ simple.tree <- rpart(text.classification.model,
   data=train.data.frame,)
 
 # plot the regression tree result from rpart
+## This is for visualization of the random forest, creating branches and splits
 pdf(file = "fig_sentiment_simple_tree_classifier.pdf", width = 8.5, height = 8.5)
 prp(simple.tree, main="",
   digits = 3,  # digits to display in terminal nodes
