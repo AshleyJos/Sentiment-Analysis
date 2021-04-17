@@ -15,6 +15,7 @@
 # name <R_utility_program_5.R>, which is brought in by source().
 
 # install these packages before bringing them in by library()
+## these lines call the libraries, bringing in all relevant data and charts needed for analysis
 library(tm)  # text mining and document management
 library(stringr)  # character manipulation with regular expressions
 library(grid)  # grid graphics utilities
@@ -32,15 +33,18 @@ library(rpart.plot)  # plot tree-structured model information
 #     source("R_utility_program_3.R")
 # Or if you have the R binary file in your working directory, use
 #     load("mtpa_split_plotting_utilities.Rdata")
+## This function loads the R data in a binary file
 load("mtpa_split_plotting_utilities.Rdata")
 
 # standardization needed for text measures
+## This standardizes the function, mean, and standard deviation for easier comparison
 standardize <- function(x) {(x - mean(x)) / sd(x)}
 
 # convert to bytecodes to avoid "invalid multibyte string" messages
 bytecode.convert <- function(x) {iconv(enc2utf8(x), sub = "byte")}
 
 # read in positive and negative word lists from Hu and Liu (2004)
+## These pulls in the data from the txt files on positive and negative language and puts them into columns for identification
 positive.data.frame <- read.table(file = "Hu_Liu_positive_word_list.txt",
   header = FALSE, colClasses = c("character"), row.names = NULL, 
   col.names = "positive.words")
@@ -57,6 +61,7 @@ negative.data.frame$negative.words <-
 # available at http://ai.stanford.edu/~amaas/data/sentiment/
 # we set up a directory under our working directory structure
 # /reviews/train/unsup/ for the unsupervised reviews
+## This pulls the movie ratings and puts it into a directory in the location of the users choosing
 
 directory.location <- 
   paste(getwd(),"/reviews/train/unsup/",sep = "")  
@@ -66,6 +71,7 @@ print(summary(unsup.corpus))
 
 document.collection <- unsup.corpus
 
+## These are important because they standardizes the data in preparation for analysis
 # strip white space from the documents in the collection
 document.collection <- tm_map(document.collection, stripWhitespace)
 
@@ -119,6 +125,8 @@ document.collection <- tm_map(document.collection,
 # we will start with these lists to build dictionaries 
 # that seem to make sense for movie reviews analysis
 # Hu.Liu.positive.dictionary <- Dictionary(positive.data.frame$positive.words)
+## These build the dictionaries from the previous librarys, after the data has been standardized. 
+## It also identifies the most used positive and negative words
 Hu.Liu.positive.dictionary <- 
     c(as.character(positive.data.frame$positive.words))
 reviews.tdm.Hu.Liu.positive <- TermDocumentMatrix(document.collection, 
@@ -152,6 +160,10 @@ test.negative.dictionary <- c(as.character(test.negative))
 # we need to evaluate the text measures we have defined
 # for each of the documents count the total words 
 # and the number of words that match the positive and negative dictionaries
+## This is essentially a word count, which tells us the number of words, positive words, negative words,
+## and words that are not identified as either as well as the percentage of each
+## It would be interesting to look at the percentage of each, and see if it has any
+## correlation to the overall percentage of positve and negative reviews
 total.words <- integer(length(names(document.collection)))
 positive.words <- integer(length(names(document.collection)))
 negative.words <- integer(length(names(document.collection)))
@@ -204,10 +216,13 @@ dev.off()
 # results... the eigenvalues suggest that there are two underlying dimensions
 # POSITIVE and NEGATIVE vectors rather than pointing in opposite directions
 # they appear to be othogonal to one another... separate dimensions
+## This result is to be expected, as we want the positive and negative words
+## to be independent of one another
 
 # here we see the scatter plot for the two measures... 
 # if they were on the same dimension, they would be negatively correlated
 # in fact they are correlated negatively but the correlation is very small
+## this produces a scatterplot, something we used extensively in ANA 500 in Gretl
 with(text.measures.data.frame, print(cor(POSITIVE, NEGATIVE)))  
 pdf(file = "fig_sentiment_text_measures_scatter_plot.pdf", 
   width = 8.5, height = 8.5)
@@ -226,6 +241,8 @@ dev.off()
 # reviews (ratings between 1 and 4).
 
 # a set of 500 positive reviews... part of the training set
+## This brings in a training set, a subset from our previous directory and again makes sure the 
+## data is standardized
 directory.location <- 
   paste(getwd(),"/reviews/train/pos/",sep = "")  
 
